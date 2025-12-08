@@ -7,7 +7,9 @@ const fs = require('fs');
 const { connect, getDb, ObjectId } = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log("Server running on port " + PORT));
+
 
 // CORS + JSON
 app.use(cors());
@@ -152,4 +154,5 @@ app.put('/lessons/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
 
