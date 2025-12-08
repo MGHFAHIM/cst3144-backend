@@ -1,4 +1,4 @@
-// backend-express/server.js
+// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -7,15 +7,12 @@ const fs = require('fs');
 const { connect, getDb, ObjectId } = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
 
-
-// CORS + JSON
+// ---------- middleware ----------
 app.use(cors());
 app.use(express.json());
 
-// ---------- Logger middleware (requirement) ----------
+// simple logger middleware (for coursework requirement)
 app.use((req, res, next) => {
   const now = new Date().toISOString();
   console.log(`[${now}] ${req.method} ${req.url}`);
@@ -25,7 +22,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ---------- Static file middleware for lesson images ----------
+// static images middleware (if you have images folder)
 app.use('/images', (req, res) => {
   const filePath = path.join(__dirname, 'images', req.path);
   fs.access(filePath, fs.constants.F_OK, err => {
@@ -36,13 +33,17 @@ app.use('/images', (req, res) => {
   });
 });
 
-// Connect to DB before handling requests
-connect().catch(err => {
-  console.error('Failed to connect to DB:', err);
-  process.exit(1);
-});
+// connect to MongoDB once on startup
+connect()
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+  });
 
-// ---------- GET /lessons ----------
+// ---------- routes ----------
+
+// GET /lessons – return all lessons
 app.get('/lessons', async (req, res) => {
   try {
     const db = getDb();
@@ -54,8 +55,7 @@ app.get('/lessons', async (req, res) => {
   }
 });
 
-// ---------- GET /search?q=term ----------
-// Full-text search in BACK-END (Approach 2 of coursework)
+// GET /search?q=term – backend search (Approach 2)
 app.get('/search', async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
@@ -84,8 +84,7 @@ app.get('/search', async (req, res) => {
   }
 });
 
-// ---------- POST /orders ----------
-// Saves an order document: { name, phone, items: [{ lessonId, quantity }] }
+// POST /orders – save order
 app.post('/orders', async (req, res) => {
   try {
     const { name, phone, items } = req.body;
@@ -114,8 +113,7 @@ app.post('/orders', async (req, res) => {
   }
 });
 
-// ---------- PUT /lessons/:id ----------
-// Update ANY attribute (e.g. spaces). Body contains fields to $set.
+// PUT /lessons/:id – update lesson (spaces, etc.)
 app.put('/lessons/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -125,7 +123,7 @@ app.put('/lessons/:id', async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    // Keep priceString/spacesString in sync if changed
+    // keep string fields in sync
     if (typeof updates.price === 'number') {
       updates.priceString = String(updates.price);
     }
@@ -150,9 +148,9 @@ app.put('/lessons/:id', async (req, res) => {
   }
 });
 
-// ---------- Start server ----------
+// ---------- start server (ONLY HERE) ----------
+const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log('Server running on port', PORT);
 });
-
-
